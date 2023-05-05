@@ -4,6 +4,7 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 import json
 import os
 from dotenv import load_dotenv
+import asyncio
 
 load_dotenv()
 
@@ -27,7 +28,10 @@ async def send_latest_entries():
     for rss_feed_url in RSS_FEED_URLS:
         # Fetch the RSS feed
         feed = feedparser.parse(rss_feed_url)
-          
+
+        # Wait for 1 second before processing the feed
+        await asyncio.sleep(1)
+      
         # Send the latest entry to the channel if it's not in the latest_entries dict
         latest_entry = feed.entries[0]
         title = latest_entry.title
@@ -37,6 +41,9 @@ async def send_latest_entries():
             channel = client.get_channel(DISCORD_CHANNEL_ID)
             await channel.send(message)
             latest_entries[rss_feed_url] = link
+            print(f"Added {link} to latest_entries")
+        else:
+            print(f"Skipping {link} because it is already in latest_entries")
 
     # Save the latest entries to the file with indentation
     with open(LATEST_ENTRIES_FILE, "w") as f:
