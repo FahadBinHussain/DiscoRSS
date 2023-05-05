@@ -1,0 +1,11 @@
+# Replit specific files/directories to ignore
+.replit
+*~
+.breakpoints
+replit.nix
+poetry.lock
+pyproject.toml
+
+# Environments
+.env
+venv/
