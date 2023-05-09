@@ -6,7 +6,7 @@ This Python script fetches the latest entries from multiple RSS feeds and sends 
 
 * discord
 * feedparser
-* apscheduler
+* python-dotenv
 
 # How to Use
 
@@ -56,6 +56,14 @@ This Python script fetches the latest entries from multiple RSS feeds and sends 
 
 ## Notes
 
-* The script loads the latest entries from the latest_entries.json file and checks if each entry in the RSS feed has already been sent to the Discord channel. If not, it sends the latest entry and updates the latest_entries.json file with the new entry.
+* The script loads the latest entries from the last_checked.json file and checks if each entry in the RSS feed has already been sent to the Discord channel. If not, it sends the latest entry and updates the last_checked.json file with the new entry.
 
-* The script uses the apscheduler library to schedule the send_latest_entries function to run every 5 minutes.
+* he script uses the asyncio library to run the send_latest_entries function in an infinite loop, with a delay of 5 minutes between each execution.
+
+* The script uses the feedparser library to parse the RSS feeds and extract the latest entries.
+
+* The script uses the discord.py library to interact with the Discord API and send messages to the specified channels.
+
+* The script uses the python-dotenv library to load environment variables from the .env file.
+
+* Note that you should always keep your packages up-to-date by regularly checking for new versions and updating your requirements.txt file accordingly.

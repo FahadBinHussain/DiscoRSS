@@ -1,65 +1,69 @@
 import discord
 import feedparser
-from apscheduler.schedulers.asyncio import AsyncIOScheduler
-import json
 import os
 from dotenv import load_dotenv
 import asyncio
+import datetime
+import json
 
 load_dotenv()
 
 # Information needed for discord authentication
-DISCORD_CHANNEL_ID = int(os.getenv('DISCORD_CHANNEL_ID'))
+DISCORD_CHANNEL_IDS = list(map(int, os.getenv('DISCORD_CHANNEL_IDS').split(',')))
 DISCORD_BOT_TOKEN = os.getenv('DISCORD_BOT_TOKEN')
 TIMEZONE = os.getenv('TIMEZONE')
 
 RSS_FEED_URLS = os.getenv('RSS_FEED_URLS').split(",")
 EMOJI = "\U0001F4F0"  # Newspaper emoji
-LATEST_ENTRIES_FILE = "latest_entries.json"
 
-# Load the latest entries from the file
-try:
-    with open(LATEST_ENTRIES_FILE) as f:
-        latest_entries = json.load(f)
-except FileNotFoundError:
-    latest_entries = {}
+# Load the last_checked dictionary from a JSON file, if it exists
+if os.path.exists('last_checked.json'):
+    with open('last_checked.json', 'r') as f:
+        last_checked = {url: datetime.datetime.fromisoformat(last_checked_str) for url, last_checked_str in json.load(f).items()}
+else:
+    # Create a new dictionary if the JSON file does not exist
+    last_checked = {rss_feed_url: datetime.datetime.now() for rss_feed_url in RSS_FEED_URLS}
 
 async def send_latest_entries():
-    for rss_feed_url in RSS_FEED_URLS:
-        # Fetch the RSS feed
-        feed = feedparser.parse(rss_feed_url)
+    while True:
+        for rss_feed_url in RSS_FEED_URLS:
+            # Fetch the RSS feed
+            feed = feedparser.parse(rss_feed_url)
 
-        # Wait for 1 second before processing the feed
-        await asyncio.sleep(1)
-      
-        # Send the latest entry to the channel if it's not in the latest_entries dict
-        latest_entry = feed.entries[0]
-        title = latest_entry.title
-        link = latest_entry.link
-        if rss_feed_url not in latest_entries or latest_entries[rss_feed_url] != link:
-            message = f"{EMOJI}  |  {title}\n\n{link}"
-            channel = client.get_channel(DISCORD_CHANNEL_ID)
-            await channel.send(message)
-            latest_entries[rss_feed_url] = link
-            print(f"Added {link} to latest_entries")
-        else:
-            print(f"Skipping {link} because it is already in latest_entries")
+            # Wait for 5 seconds before processing the feed
+            await asyncio.sleep(5)
 
-    # Save the latest entries to the file with indentation
-    with open(LATEST_ENTRIES_FILE, "w") as f:
-        json.dump(latest_entries, f, indent=4)
+            # Send new entries to the channels that were published after the last check
+            for entry in feed.entries:
+                title = entry.title
+                link = entry.link
+                published_time = datetime.datetime(*entry.published_parsed[:6])
+                if published_time > last_checked[rss_feed_url]:
+                    message = f"{EMOJI}  |  {title}\n\n{link}"
+                    for channel_id in DISCORD_CHANNEL_IDS:
+                        channel = client.get_channel(channel_id)
+                        await channel.send(message)
+                    last_checked[rss_feed_url] = published_time
+                    print(f"Sent {link} to Discord")
+                else:
+                    break
+
+        # Save the last_checked dictionary as a JSON file
+        with open('last_checked.json', 'w') as f:
+            json.dump({url: last_checked_str.isoformat() for url, last_checked_str in last_checked.items()}, f)
+
+        # Wait for 5 minutes before checking for new articles again
+        await asyncio.sleep(300)
 
 
 intents = discord.Intents.all()
 client = discord.Client(intents=intents)
-scheduler = AsyncIOScheduler(timezone=TIMEZONE)
 
 @client.event
 async def on_ready():
     print(f"Logged in as {client.user.name}")
 
-    # Schedule the send_latest_entries function to run every 5 minutes
-    scheduler.add_job(send_latest_entries, "interval", minutes=5)
-    scheduler.start()
+    # Start the send_latest_entries function in a loop
+    asyncio.create_task(send_latest_entries())
 
 client.run(DISCORD_BOT_TOKEN)
