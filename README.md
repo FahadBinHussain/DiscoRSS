@@ -6,7 +6,8 @@ This Python script fetches the latest entries from multiple RSS feeds and sends 
 
 * discord
 * feedparser
-* python-dotenv
+* dotenv
+* pyyaml
 
 # How to Use
 
@@ -40,11 +41,11 @@ This Python script fetches the latest entries from multiple RSS feeds and sends 
 
 ## Step 2: Storing the values
 
-1. Store the Discord Channel ID, Bot Token, RSS Feed URLs and Timezone to `.env` under the `DISCORD_CHANNEL_ID`, `DISCORD_BOT_TOKEN`, `RSS_FEED_URLS` and `TIMEZONE`
+1. Store the Discord Channel ID, Bot Token, RSS Feed URLs and Timezone to `.env` under the `DISCORD_CHANNEL_ID`, `DISCORD_BOT_TOKEN`, and `RSS_FEED_URLS`
 
-[![image.png](https://i.postimg.cc/q7FvKMSB/image.png)](https://postimg.cc/Mcyw2xzg)
+[![image.png](https://i.postimg.cc/kGgV2CkH/image.png)](https://postimg.cc/njNVWyVK)
 
-2. You're all set.
+You're all set.
 
 ## Run the bot on the desktop
 
@@ -54,16 +55,10 @@ This Python script fetches the latest entries from multiple RSS feeds and sends 
 
 3. Run `python3 main.py` to start the bot
 
-## Notes
+## How the bot works
 
-* The script loads the latest entries from the last_checked.json file and checks if each entry in the RSS feed has already been sent to the Discord channel. If not, it sends the latest entry and updates the last_checked.json file with the new entry.
+* This bot works by periodically fetching the latest articles from one or more RSS feeds and sending them to specified Discord channels.
 
-* he script uses the asyncio library to run the send_latest_entries function in an infinite loop, with a delay of 5 minutes between each execution.
+* When the bot starts, it logs in to Discord using a bot token and sets up a loop that runs indefinitely. Inside the loop, the bot fetches the RSS feeds and checks for new articles. If a new article is found, the bot sends a message to the specified Discord channel with the article title and link.
 
-* The script uses the feedparser library to parse the RSS feeds and extract the latest entries.
-
-* The script uses the discord.py library to interact with the Discord API and send messages to the specified channels.
-
-* The script uses the python-dotenv library to load environment variables from the .env file.
-
-* Note that you should always keep your packages up-to-date by regularly checking for new versions and updating your requirements.txt file accordingly.
+* The bot keeps track of which articles have already been sent to each channel using a YAML file called sent_articles.yaml. This file is updated every time a new article is sent, to ensure that duplicate articles are not sent to the same channel.

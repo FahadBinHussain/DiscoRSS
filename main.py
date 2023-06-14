@@ -2,68 +2,84 @@ import discord
 import feedparser
 import os
 from dotenv import load_dotenv
+import yaml
 import asyncio
-import datetime
-import json
 
 load_dotenv()
-
+intents = discord.Intents.all()
+client = discord.Client(intents=intents)
 # Information needed for discord authentication
 DISCORD_CHANNEL_IDS = list(map(int, os.getenv('DISCORD_CHANNEL_IDS').split(',')))
 DISCORD_BOT_TOKEN = os.getenv('DISCORD_BOT_TOKEN')
-TIMEZONE = os.getenv('TIMEZONE')
-
 RSS_FEED_URLS = os.getenv('RSS_FEED_URLS').split(",")
 EMOJI = "\U0001F4F0"  # Newspaper emoji
+sent_articles_file = "sent_articles.yaml"
 
-# Load the last_checked dictionary from a JSON file, if it exists
-if os.path.exists('last_checked.json'):
-    with open('last_checked.json', 'r') as f:
-        last_checked = {url: datetime.datetime.fromisoformat(last_checked_str) for url, last_checked_str in json.load(f).items()}
-else:
-    # Create a new dictionary if the JSON file does not exist
-    last_checked = {rss_feed_url: datetime.datetime.now() for rss_feed_url in RSS_FEED_URLS}
+async def fetch_feed(channel):
+    # Load the seen IDs from the file, or create an empty dictionary
+    if os.path.exists(sent_articles_file):
+        with open(sent_articles_file, "r") as f:
+            sent_articles = yaml.safe_load(f)
+        print("Loaded YAML object")
+    else:
+        sent_articles = {}
+        print("Created new empty dictionary")
 
-async def send_latest_entries():
+    for rss_feed_url in RSS_FEED_URLS:
+        # Parse the RSS feed
+        print("Parsing RSS feed...")
+        feed = feedparser.parse(rss_feed_url)
+
+        # Check if the feed was parsed successfully
+        if feed.bozo:
+            print(f"Error parsing RSS feed: {feed.bozo_exception}")
+            continue
+
+        last_entry = feed.entries[0]
+        if channel.id not in sent_articles:
+            sent_articles[channel.id] = []
+        if last_entry.link not in sent_articles[channel.id]:
+            article_title = last_entry.title
+            article_link = last_entry.link
+            sent_articles[channel.id].append(last_entry.link)
+
+            print(f"New article: {article_title}")
+            print(f"Link: {article_link}")
+
+            try:
+                # Send the article link to the channel
+                await channel.send(f"{EMOJI}  |  {article_title}\n\n{article_link}")
+                print("Article sent to channel successfully")
+            except discord.Forbidden:
+                print("Error: Insufficient permissions to send messages to the channel")
+            except discord.HTTPException as e:
+                print(f"Error sending message to the channel: {e}")
+
+        print(f"Parsing complete for {rss_feed_url}")
+
     while True:
-        for rss_feed_url in RSS_FEED_URLS:
-            # Fetch the RSS feed
-            feed = feedparser.parse(rss_feed_url)
-
-            # Wait for 5 seconds before processing the feed
-            await asyncio.sleep(5)
-
-            # Send new entries to the channels that were published after the last check
-            for entry in feed.entries:
-                title = entry.title
-                link = entry.link
-                published_time = datetime.datetime(*entry.published_parsed[:6])
-                if published_time > last_checked[rss_feed_url]:
-                    message = f"{EMOJI}  |  {title}\n\n{link}"
-                    for channel_id in DISCORD_CHANNEL_IDS:
-                        channel = client.get_channel(channel_id)
-                        await channel.send(message)
-                    last_checked[rss_feed_url] = published_time
-                    print(f"Sent {link} to Discord")
-                else:
-                    break
-
-        # Save the last_checked dictionary as a JSON file
-        with open('last_checked.json', 'w') as f:
-            json.dump({url: last_checked_str.isoformat() for url, last_checked_str in last_checked.items()}, f)
-
-        # Wait for 5 minutes before checking for new articles again
-        await asyncio.sleep(300)
-
-
-intents = discord.Intents.all()
-client = discord.Client(intents=intents)
-
+        try:
+            with open(sent_articles_file, "w") as f:
+                yaml.dump(sent_articles, f, default_flow_style=False, sort_keys=False)
+            break  # Exit the loop if the file was written successfully
+        except Exception as e:
+            print(f"Error writing seen IDs to file: {e}")
+            await asyncio.sleep(1)  # Wait for 1 second before trying again
+    
 @client.event
 async def on_ready():
-    print(f"Logged in as {client.user.name}")
+    print(f"Bot logged in as {client.user.name}")
 
-    # Start the send_latest_entries function in a loop
-    asyncio.create_task(send_latest_entries())
+    while True:
+        for channel_id in DISCORD_CHANNEL_IDS:
+            # Get the desired channel object
+            channel = client.get_channel(channel_id)
+            print(f"Target channel: {channel.name} (ID: {channel.id})")
+            # Fetch the RSS feed
+            await fetch_feed(channel)
 
+        await asyncio.sleep(600) # Wait for 60 seconds before fetching again
+
+# Start the bot
+print("Starting the bot...")
 client.run(DISCORD_BOT_TOKEN)

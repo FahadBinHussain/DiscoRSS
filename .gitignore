@@ -9,5 +9,3 @@ pyproject.toml
 # Environments
 .env
 venv/
-
-*.json
