@@ -1,5 +1,9 @@
 # DiscoRSS
 
+<img src="https://wakapi-qt1b.onrender.com/api/badge/fahad/interval:any/project:DiscoRSS" 
+     alt="Wakapi Time Tracking" 
+     title="Spent more than that amount of time spent on this project">
+
 This Python script fetches the latest entries from multiple RSS feeds and sends them to a Discord channel. The bot uses the discord and feedparser libraries to interact with Discord and parse RSS feeds, respectively.
 
 # Dependencies
