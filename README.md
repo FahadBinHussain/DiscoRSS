@@ -66,3 +66,9 @@ You're all set.
 * When the bot starts, it logs in to Discord using a bot token and sets up a loop that runs indefinitely. Inside the loop, the bot fetches the RSS feeds and checks for new articles. If a new article is found, the bot sends a message to the specified Discord channel with the article title and link.
 
 * The bot keeps track of which articles have already been sent to each channel using a YAML file called sent_articles.yaml. This file is updated every time a new article is sent, to ensure that duplicate articles are not sent to the same channel.
+
+## Contributors
+
+<a href="https://github.com/FahadBinHussain/DiscoRSS/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=FahadBinHussain/DiscoRSS" alt="Contributors" />
+</a>
