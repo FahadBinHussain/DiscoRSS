@@ -4,6 +4,10 @@
      alt="Wakapi Time Tracking" 
      title="Spent more than that amount of time spent on this project">
 
+## Maintenance Status
+
+This project is not actively maintained now. It remains public as a reference/portfolio project, but new features, fixes, and support are not currently planned.
+
 This Python script fetches the latest entries from multiple RSS feeds and sends them to a Discord channel. The bot uses the discord and feedparser libraries to interact with Discord and parse RSS feeds, respectively.
 
 # Dependencies
